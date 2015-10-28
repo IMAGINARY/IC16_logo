@@ -66,6 +66,13 @@
 				particleCount: 500
 			};
 
+			function Zitrus ( radius, length, center ) {};
+			Zitrus.prototype.x = function(phi, z) { return Math.sqrt(Math.pow(z,3.0)*Math.pow(1-z,3.0))*Math.cos(phi); };
+			Zitrus.prototype.y = function(phi, z) { return Math.sqrt(Math.pow(z,3.0)*Math.pow(1-z,3.0))*Math.sin(phi); };
+			Zitrus.prototype.z = function(phi, z) { return z; };
+
+			zitrus = new Zitrus();
+
 			init();
 			animate();
 
@@ -130,9 +137,13 @@
 
 				for ( var i = 0; i < maxParticleCount; i++ ) {
 
-					var x = Math.random() * r - r / 2;
-					var y = Math.random() * r - r / 2;
-					var z = Math.random() * r - r / 2;
+
+					var z_zitrus = Math.random();
+					var phi_zitrus = 2.0 * Math.PI * Math.random();
+
+					var x = 2*zitrus.x( phi_zitrus, z_zitrus ) * r;
+					var y = 2*zitrus.y( phi_zitrus, z_zitrus ) * r;
+					var z = zitrus.z( phi_zitrus, z_zitrus ) * r - r / 2.0;
 
 					particlePositions[ i * 3     ] = x;
 					particlePositions[ i * 3 + 1 ] = y;
@@ -140,7 +151,9 @@
 
 					// add it to the geometry
 					particlesData.push( {
-						velocity: new THREE.Vector3( -1 + Math.random() * 2, -1 + Math.random() * 2,  -1 + Math.random() * 2 ),
+						velocity:
+						//new THREE.Vector3( 0.0, 0.0, 0.0 ),
+						new THREE.Vector3( -1 + Math.random() * 2, -1 + Math.random() * 2,  -1 + Math.random() * 2 ),
 						numConnections: 0
 					} );
 
