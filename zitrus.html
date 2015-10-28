@@ -66,12 +66,27 @@
 				particleCount: 500
 			};
 
-			function Zitrus ( radius, length, center ) {};
-			Zitrus.prototype.x = function(phi, z) { return Math.sqrt(Math.pow(z,3.0)*Math.pow(1-z,3.0))*Math.cos(phi); };
-			Zitrus.prototype.y = function(phi, z) { return Math.sqrt(Math.pow(z,3.0)*Math.pow(1-z,3.0))*Math.sin(phi); };
-			Zitrus.prototype.z = function(phi, z) { return z; };
+			function Zitrus ( theRadius, theLength, theCenter ) {
+				this.radius = 4.0 * theRadius;
+				this.length = theLength;
+				this.center = theCenter;
+			};
+			Zitrus.prototype.parametric = function( phi, z ) {
+				var tmp = z * ( 1.0 - z );
+				tmp = Math.sqrt( tmp * tmp * tmp );
+				return new THREE.Vector3( this.radius * tmp * Math.cos( phi ) - this.center.x,
+					this.radius * tmp * Math.sin( phi ) - this.center.y,
+					this.length * z - this.center.z );
+			};
+			Zitrus.prototype.implicit = function( x, y, z ) {
+				x = x / r - this.center.x;
+				y = y / r - this.center.y;
+				z = z / length - this.center.z;
+				var tmp = z * ( 1 - z );
+				return x * x + y * y - tmp * tmp * tmp;
+			}
 
-			zitrus = new Zitrus();
+			zitrus = new Zitrus( r / 2.0, r, new THREE.Vector3( 0.0, 0.0, r / 2.0 ));
 
 			init();
 			animate();
@@ -141,13 +156,11 @@
 					var z_zitrus = Math.random();
 					var phi_zitrus = 2.0 * Math.PI * Math.random();
 
-					var x = 2*zitrus.x( phi_zitrus, z_zitrus ) * r;
-					var y = 2*zitrus.y( phi_zitrus, z_zitrus ) * r;
-					var z = zitrus.z( phi_zitrus, z_zitrus ) * r - r / 2.0;
+					var pos = zitrus.parametric( phi_zitrus, z_zitrus );
 
-					particlePositions[ i * 3     ] = x;
-					particlePositions[ i * 3 + 1 ] = y;
-					particlePositions[ i * 3 + 2 ] = z;
+					particlePositions[ i * 3     ] = pos.x;
+					particlePositions[ i * 3 + 1 ] = pos.y;
+					particlePositions[ i * 3 + 2 ] = pos.z;
 
 					// add it to the geometry
 					particlesData.push( {
