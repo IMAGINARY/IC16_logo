@@ -39,6 +39,7 @@
 		<script src="js/three.min.js"></script>
 		<script src="js/controls/OrbitControls.js"></script>
 		<script src="js/libs/stats.min.js"></script>
+		<script src="js/libs/Tween.js"></script>
 
 		<script>
 
@@ -61,7 +62,7 @@
 				showDots: true,
 				showLines: true,
 				minDistance: 75,
-				limitConnections: false,
+				limitConnections: true,
 				maxConnections: 20,
 				particleCount: 500,
 				interpolation: 0.00001
@@ -235,6 +236,25 @@
 
 				window.addEventListener( 'resize', onWindowResize, false );
 
+				// initialize tweens and put them in order into an array
+				var tweens = [];
+				tweens.push( new TWEEN.Tween( effectController )
+					.to({ interpolation: 1.0 }, 2000 )
+					.delay( 1000 ) );
+				tweens.push( new TWEEN.Tween( effectController )
+					.to({ maxConnections: 1 }, 2000 )
+					.repeat( 1 )
+					.yoyo( true )
+					.delay( 1000 ) );
+				tweens.push( new TWEEN.Tween( effectController )
+					.to({ interpolation: 0.0 }, 2000 )
+					.delay( 1000 ) );
+
+				// actually chain tweens and start them
+				for( var i = 0; i < tweens.length - 1; i++ )
+					tweens[ i ].chain( tweens[ i + 1 ] );
+				tweens[ tweens.length - 1 ].chain( tweens[ 0 ] );
+				tweens[ 0 ].start();
 			}
 
 			function onWindowResize() {
@@ -247,6 +267,8 @@
 			}
 
 			function animate() {
+
+				TWEEN.update();
 
 				var vertexpos = 0;
 				var colorpos = 0;
