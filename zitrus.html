@@ -60,10 +60,11 @@
 			var effectController = {
 				showDots: true,
 				showLines: true,
-				minDistance: 150,
+				minDistance: 75,
 				limitConnections: false,
 				maxConnections: 20,
-				particleCount: 500
+				particleCount: 500,
+				interpolation: 0.00001
 			};
 
 			function Zitrus ( theRadius, theLength, theCenter ) {
@@ -86,7 +87,7 @@
 				return x * x + y * y - tmp * tmp * tmp;
 			}
 
-			zitrus = new Zitrus( r / 2.0, r, new THREE.Vector3( 0.0, 0.0, r / 2.0 ));
+			zitrus = new Zitrus( ( Math.sqrt( 5.0 / 1.2 ) / 2.0 ) * r / 2.0, r, new THREE.Vector3( 0.0, 0.0, r / 2.0 ));
 
 			init();
 			animate();
@@ -106,7 +107,26 @@
 					particles.setDrawRange( 0, particleCount );
 
 				});
+				gui.add( effectController, "interpolation", 0.0, 1.0 );
+			}
 
+			function newParticleData() {
+				return {
+					on_zitrus: {
+						phi: 2.0 * Math.PI * Math.random(),
+						z: Math.random(),
+						pos: zitrus.parametric( this.phi, this.z ),
+						velocity_phi: 2 * Math.PI * ( Math.random() * 2 - 1 ) / 500,
+						velocity_z: ( Math.random() * 2 - 1 ) / 500
+					},
+					in_cube: {
+						pos: new THREE.Vector3( Math.random() * r - r / 2, Math.random() * r - r / 2, Math.random() * r - r / 2 ),
+						velocity:
+						//new THREE.Vector3( 0.0, 0.0, 0.0 ),
+						new THREE.Vector3( -1 + Math.random() * 2, -1 + Math.random() * 2,  -1 + Math.random() * 2 )
+					},
+					numConnections: 0
+				};
 			}
 
 			function init() {
@@ -117,7 +137,7 @@
 
 				//
 
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 4000 );
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
 				camera.position.z = 1750;
 
 				controls = new THREE.OrbitControls( camera, container );
@@ -151,25 +171,22 @@
 				particlePositions = new Float32Array( maxParticleCount * 3 );
 
 				for ( var i = 0; i < maxParticleCount; i++ ) {
+					// create new particle data
+					var data = newParticleData();
 
-
-					var z_zitrus = Math.random();
-					var phi_zitrus = 2.0 * Math.PI * Math.random();
-
-					var pos = zitrus.parametric( phi_zitrus, z_zitrus );
-
-					particlePositions[ i * 3     ] = pos.x;
-					particlePositions[ i * 3 + 1 ] = pos.y;
-					particlePositions[ i * 3 + 2 ] = pos.z;
+					// fix at least two points at the singularities
+					if( i == 0 || i == 1 )
+					{
+						data.on_zitrus.z = i == 0 ? 0.0 : 1.0;
+						data.on_zitrus.velocity_z = 0.0;
+						data.on_zitrus.pos = zitrus.parametric( data.on_zitrus.phi, data.on_zitrus.z );
+					}
 
 					// add it to the geometry
-					particlesData.push( {
-						velocity:
-						//new THREE.Vector3( 0.0, 0.0, 0.0 ),
-						new THREE.Vector3( -1 + Math.random() * 2, -1 + Math.random() * 2,  -1 + Math.random() * 2 ),
-						numConnections: 0
-					} );
-
+					particlesData.push( data );
+					particlePositions[ i + 0 ] = data.on_zitrus.pos.x;
+					particlePositions[ i + 1 ] = data.on_zitrus.pos.y;
+					particlePositions[ i + 2 ] = data.on_zitrus.pos.z;
 				}
 
 				particles.setDrawRange( 0, particleCount );
@@ -184,7 +201,7 @@
 				geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ).setDynamic( true ) );
 				geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ).setDynamic( true ) );
 
-				geometry.computeBoundingSphere();
+				//geometry.computeBoundingSphere();
 
 				geometry.setDrawRange( 0, 0 );
 
@@ -202,6 +219,7 @@
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setClearColor( 0x777777, 1.0 );
 
 				renderer.gammaInput = true;
 				renderer.gammaOutput = true;
@@ -234,33 +252,56 @@
 				var colorpos = 0;
 				var numConnected = 0;
 
-				for ( var i = 0; i < particleCount; i++ )
-					particlesData[ i ].numConnections = 0;
-
 				for ( var i = 0; i < particleCount; i++ ) {
-
 					// get the particle
 					var particleData = particlesData[i];
+					var on_zitrus = particleData.on_zitrus;
+					var in_cube = particleData.in_cube;
 
-					particlePositions[ i * 3     ] += particleData.velocity.x;
-					particlePositions[ i * 3 + 1 ] += particleData.velocity.y;
-					particlePositions[ i * 3 + 2 ] += particleData.velocity.z;
+					// reset number of connections for this frame
+					particleData.numConnections = 0;
 
-					if ( particlePositions[ i * 3 + 1 ] < -rHalf || particlePositions[ i * 3 + 1 ] > rHalf )
-						particleData.velocity.y = -particleData.velocity.y;
+					// update particle positions and velocities of the on_zitrus part
+					on_zitrus.pos = zitrus.parametric( on_zitrus.phi, on_zitrus.z );
+					on_zitrus.z += on_zitrus.velocity_z;
+					on_zitrus.phi += on_zitrus.velocity_phi;
+					if( on_zitrus.phi > 2.0 * Math.PI )
+						on_zitrus.phi -= 2.0 * Math.PI;
+					else if( on_zitrus.phi < 0.0 )
+						on_zitrus.phi += 2.0 * Math.PI;
+					if( on_zitrus.z > 1.0 )
+						on_zitrus.z -= 1.0;
+					else if( on_zitrus.z < 0.0 )
+						on_zitrus.z += 1.0
 
-					if ( particlePositions[ i * 3 ] < -rHalf || particlePositions[ i * 3 ] > rHalf )
-						particleData.velocity.x = -particleData.velocity.x;
+					// update particle positions and velocities of the in_cube part
+					in_cube.pos.add( in_cube.velocity );
 
-					if ( particlePositions[ i * 3 + 2 ] < -rHalf || particlePositions[ i * 3 + 2 ] > rHalf )
-						particleData.velocity.z = -particleData.velocity.z;
+					if ( in_cube.pos.x < -rHalf || in_cube.pos.x > rHalf )
+						in_cube.velocity.x = -in_cube.velocity.x;
 
-					if ( effectController.limitConnections && particleData.numConnections >= effectController.maxConnections )
+					if ( in_cube.pos.y < -rHalf || in_cube.pos.y > rHalf )
+						in_cube.velocity.y = -in_cube.velocity.y;
+
+					if ( in_cube.pos.z < -rHalf || in_cube.pos.z > rHalf )
+						in_cube.velocity.z = -in_cube.velocity.z;
+
+					// update vertex buffer
+					var in_between = new THREE.Vector3().lerpVectors( on_zitrus.pos, in_cube.pos, effectController.interpolation );
+					//console.log( in_between );
+					particlePositions[ i * 3     ] = in_between.x;
+					particlePositions[ i * 3 + 1 ] = in_between.y;
+					particlePositions[ i * 3 + 2 ] = in_between.z;
+				}
+
+				for ( var i = 0; i < particleCount; i++ ) {
+					var particleDataA = particlesData[ i ];
+
+					if ( effectController.limitConnections && particleDataA.numConnections >= effectController.maxConnections )
 						continue;
 
 					// Check collision
 					for ( var j = i + 1; j < particleCount; j++ ) {
-
 						var particleDataB = particlesData[ j ];
 						if ( effectController.limitConnections && particleDataB.numConnections >= effectController.maxConnections )
 							continue;
@@ -270,12 +311,13 @@
 						var dz = particlePositions[ i * 3 + 2 ] - particlePositions[ j * 3 + 2 ];
 						var dist = Math.sqrt( dx * dx + dy * dy + dz * dz );
 
-						if ( dist < effectController.minDistance ) {
+						var minDistance = effectController.minDistance * ( 1.0 + effectController.interpolation );
+						if ( dist < minDistance ) {
 
-							particleData.numConnections++;
+							particleDataA.numConnections++;
 							particleDataB.numConnections++;
 
-							var alpha = 1.0 - dist / effectController.minDistance;
+							var alpha = 1.0 - dist / minDistance;
 
 							positions[ vertexpos++ ] = particlePositions[ i * 3     ];
 							positions[ vertexpos++ ] = particlePositions[ i * 3 + 1 ];
@@ -298,7 +340,6 @@
 					}
 				}
 
-
 				linesMesh.geometry.setDrawRange( 0, numConnected * 2 );
 				linesMesh.geometry.attributes.position.needsUpdate = true;
 				linesMesh.geometry.attributes.color.needsUpdate = true;
@@ -315,6 +356,7 @@
 			function render() {
 
 				var time = Date.now() * 0.001;
+				//time = 5.0 * Math.PI;
 
 				group.rotation.y = time * 0.1;
 				renderer.render( scene, camera );
