@@ -37,6 +37,8 @@
 
 		<script src="js/libs/dat.gui.min.js"></script>
 		<script src="js/three.min.js"></script>
+		<script src="js/renderers/Projector.js"></script>
+		<script src="js/renderers/SVGRenderer.js"></script>
 		<script src="js/controls/OrbitControls.js"></script>
 		<script src="js/libs/stats.min.js"></script>
 		<script src="js/libs/Tween.js"></script>
@@ -46,7 +48,7 @@
 			var group;
 			var container, controls, stats;
 			var particlesData = [];
-			var camera, scene, renderer;
+			var camera, scene, renderer, svgRenderer;
 			var positions, colors;
 			var particles;
 			var pointCloud;
@@ -80,6 +82,15 @@
 				tweens[ 0 ].start();
 				requestAnimationFrame( animate );
 			};
+			effectController.exportToSvg = function() {
+				var generator=window.open('','name','height=400,width=500');
+
+				generator.document.write('<html><head><title>SVG Export</title>');
+				generator.document.write('</body></html>');
+				generator.document.close();
+
+				generator.document.body.appendChild( svgRenderer.domElement );
+				svgRenderer.render( scene, camera );
 			};
 
 			function Zitrus ( theRadius, theLength, theCenter ) {
@@ -142,6 +153,7 @@
 					requestAnimationFrame( animate );
 				} );
 				gui.add( effectController, "restartTweening" );
+				gui.add( effectController, "exportToSvg" );
 			}
 
 			function newParticleData() {
@@ -254,12 +266,15 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setClearColor( 0x777777, 1.0 );
-
 				renderer.gammaInput = true;
 				renderer.gammaOutput = true;
 
-				container.appendChild( renderer.domElement );
+				svgRenderer = new THREE.SVGRenderer();
+				svgRenderer.setClearColor( 0x777777 );
+				svgRenderer.setSize( window.innerWidth, window.innerHeight );
+				svgRenderer.setQuality( 'high' );
 
+				container.appendChild( renderer.domElement );
 				//
 
 				stats = new Stats();
