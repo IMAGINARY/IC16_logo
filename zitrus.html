@@ -308,6 +308,9 @@
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Bounce.InOut )
 					.to( { maxConnections: defaults.maxConnections }, 2000 ) );
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( {"showDots":true,"showLines":true,"minDistance":17.62937044539739,"limitConnections":true,"maxConnections":30,"particleCount":1000,"interpolation":0}, 2000 ) );
 
 				// actually chain tweens and start them
 				for( var i = 0; i < tweens.length - 1; i++ )
