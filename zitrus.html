@@ -58,14 +58,27 @@
 			var r = 800;
 			var rHalf = r / 2;
 
-			var effectController = {
+			var defaults = {
 				showDots: true,
 				showLines: true,
 				minDistance: 75,
 				limitConnections: true,
 				maxConnections: 20,
 				particleCount: 500,
-				interpolation: 0.00001
+				interpolation: 0.999999
+			}
+
+			var effectController = {};
+			// copy over default values
+			for( var attr in defaults )
+				effectController[ attr ] = defaults[ attr ];
+			// add additional controls
+			effectController.animate = true;
+			effectController.restartTweening = function() {
+				TWEEN.removeAll();
+				tweens[ 0 ].start();
+				requestAnimationFrame( animate );
+			};
 			};
 
 			function Zitrus ( theRadius, theLength, theCenter ) {
@@ -97,18 +110,37 @@
 
 				var gui = new dat.GUI();
 
-				gui.add( effectController, "showDots" ).onChange( function( value ) { pointCloud.visible = value; } );
-				gui.add( effectController, "showLines" ).onChange( function( value ) { linesMesh.visible = value; } );
-				gui.add( effectController, "minDistance", 10, 300 );
-				gui.add( effectController, "limitConnections" );
-				gui.add( effectController, "maxConnections", 0, 30, 1 );
-				gui.add( effectController, "particleCount", 0, maxParticleCount, 1 ).onChange( function( value ) {
-
+				gui.add( effectController, "showDots" ).listen().onChange( function( value ) {
+					pointCloud.visible = value;
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "showLines" ).listen().onChange( function( value ) {
+					linesMesh.visible = value;
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "minDistance", 10, 300 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "limitConnections" ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "maxConnections", 0, 30, 1 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "particleCount", 0, maxParticleCount, 1 ).listen().onChange( function( value ) {
 					particleCount = parseInt( value );
 					particles.setDrawRange( 0, particleCount );
-
+					requestAnimationFrame( animate );
 				});
-				gui.add( effectController, "interpolation", 0.0, 1.0 );
+				gui.add( effectController, "interpolation", 0.0, 1.0 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "animate" ).listen().onChange( function() {
+					if( !effectController.animate )
+						TWEEN.removeAll();
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "restartTweening" );
 			}
 
 			function newParticleData() {
@@ -283,30 +315,32 @@
 					// reset number of connections for this frame
 					particleData.numConnections = 0;
 
-					// update particle positions and velocities of the on_zitrus part
-					on_zitrus.pos = zitrus.parametric( on_zitrus.phi, on_zitrus.z );
-					on_zitrus.z += on_zitrus.velocity_z;
-					on_zitrus.phi += on_zitrus.velocity_phi;
-					if( on_zitrus.phi > 2.0 * Math.PI )
-						on_zitrus.phi -= 2.0 * Math.PI;
-					else if( on_zitrus.phi < 0.0 )
-						on_zitrus.phi += 2.0 * Math.PI;
-					if( on_zitrus.z > 1.0 )
-						on_zitrus.z -= 1.0;
-					else if( on_zitrus.z < 0.0 )
-						on_zitrus.z += 1.0
+					if( effectController.animate ) {
+						// update particle positions and velocities of the on_zitrus part
+						on_zitrus.pos = zitrus.parametric( on_zitrus.phi, on_zitrus.z );
+						on_zitrus.z += on_zitrus.velocity_z;
+						on_zitrus.phi += on_zitrus.velocity_phi;
+						if( on_zitrus.phi > 2.0 * Math.PI )
+							on_zitrus.phi -= 2.0 * Math.PI;
+						else if( on_zitrus.phi < 0.0 )
+							on_zitrus.phi += 2.0 * Math.PI;
+						if( on_zitrus.z > 1.0 )
+							on_zitrus.z -= 1.0;
+						else if( on_zitrus.z < 0.0 )
+							on_zitrus.z += 1.0
 
-					// update particle positions and velocities of the in_cube part
-					in_cube.pos.add( in_cube.velocity );
+						// update particle positions and velocities of the in_cube part
+						in_cube.pos.add( in_cube.velocity );
 
-					if ( in_cube.pos.x < -rHalf || in_cube.pos.x > rHalf )
-						in_cube.velocity.x = -in_cube.velocity.x;
+						if ( in_cube.pos.x < -rHalf || in_cube.pos.x > rHalf )
+							in_cube.velocity.x = -in_cube.velocity.x;
 
-					if ( in_cube.pos.y < -rHalf || in_cube.pos.y > rHalf )
-						in_cube.velocity.y = -in_cube.velocity.y;
+						if ( in_cube.pos.y < -rHalf || in_cube.pos.y > rHalf )
+							in_cube.velocity.y = -in_cube.velocity.y;
 
-					if ( in_cube.pos.z < -rHalf || in_cube.pos.z > rHalf )
-						in_cube.velocity.z = -in_cube.velocity.z;
+						if ( in_cube.pos.z < -rHalf || in_cube.pos.z > rHalf )
+							in_cube.velocity.z = -in_cube.velocity.z;
+					}
 
 					// update vertex buffer
 					var in_between = new THREE.Vector3().lerpVectors( on_zitrus.pos, in_cube.pos, effectController.interpolation );
@@ -368,11 +402,11 @@
 
 				pointCloud.geometry.attributes.position.needsUpdate = true;
 
-				requestAnimationFrame( animate );
+				if( effectController.animate )
+					requestAnimationFrame( animate );
 
 				stats.update();
 				render();
-
 			}
 
 			function render() {
