@@ -95,6 +95,9 @@
 				generator.document.body.appendChild( svgRenderer.domElement );
 				svgRenderer.render( scene, camera );
 			};
+			effectController.showSettingsInPopUp = function() {
+				window.alert( JSON.stringify( effectController, Object.getOwnPropertyNames( defaults ) ) );
+			}
 
 			function Zitrus ( theRadius, theLength, theCenter ) {
 				this.radius = 4.0 * theRadius;
@@ -123,7 +126,7 @@
 
 			function initGUI() {
 
-				var gui = new dat.GUI();
+				var gui = new dat.GUI( { width: 300 } );
 
 				gui.add( effectController, "showDots" ).listen().onChange( function( value ) {
 					pointCloud.visible = value;
@@ -156,6 +159,7 @@
 					requestAnimationFrame( animate );
 				} );
 				gui.add( effectController, "restartTweening" );
+				gui.add( effectController, "showSettingsInPopUp" );
 				gui.add( effectController, "exportToSvg" );
 			}
 
