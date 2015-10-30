@@ -52,6 +52,7 @@
 			var pointCloud;
 			var particlePositions;
 			var linesMesh;
+			var tweens;
 
 			var maxParticleCount = 1000;
 			var particleCount = 500;
@@ -269,18 +270,22 @@
 				window.addEventListener( 'resize', onWindowResize, false );
 
 				// initialize tweens and put them in order into an array
-				var tweens = [];
+				tweens = [];
 				tweens.push( new TWEEN.Tween( effectController )
-					.to({ interpolation: 1.0 }, 2000 )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( defaults, 2000 )
 					.delay( 1000 ) );
 				tweens.push( new TWEEN.Tween( effectController )
-					.to({ maxConnections: 1 }, 2000 )
-					.repeat( 1 )
-					.yoyo( true )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { interpolation: 0.0 }, 2000 )
 					.delay( 1000 ) );
 				tweens.push( new TWEEN.Tween( effectController )
-					.to({ interpolation: 0.0 }, 2000 )
+					.easing( TWEEN.Easing.Bounce.InOut )
+					.to( { maxConnections: 1 }, 2000 )
 					.delay( 1000 ) );
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Bounce.InOut )
+					.to( { maxConnections: defaults.maxConnections }, 2000 ) );
 
 				// actually chain tweens and start them
 				for( var i = 0; i < tweens.length - 1; i++ )
