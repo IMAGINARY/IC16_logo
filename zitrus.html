@@ -49,11 +49,12 @@
 			var container, controls, stats;
 			var particlesData = [];
 			var camera, scene, renderer, svgRenderer;
-			var positions, colors;
-			var particles;
-			var pointCloud;
-			var particlePositions;
-			var linesMesh;
+			var positions = [], colors = [];
+			var particles = [];
+			var pointCloud = [];
+			var particlePositions = [];
+			var geometry = [];
+			var linesMesh = [];
 			var tweens;
 
 			var maxParticleCount = 1000;
@@ -65,10 +66,19 @@
 				showDots: true,
 				showLines: true,
 				minDistance: 75,
+				minDistanceFactor: 0.999999,
 				limitConnections: true,
 				maxConnections: 20,
 				particleCount: 500,
-				interpolation: 0.999999
+				onZitrusCoeff: 0.999999,
+				inCubeCoeff: 0.0001,
+				onSphereCoeff: 0.0001,
+				atPointCoeff: 0.0001,
+				inCubeCoeff2: 0.0001,
+				onSphereCoeff2: 0.0001,
+				atPointCoeff2: 0.999999,
+				opacity: 1.0,
+				opacity2: 1.0
 			}
 
 			var effectController = {};
@@ -119,7 +129,18 @@
 				return x * x + y * y - tmp * tmp * tmp;
 			}
 
+			function Sphere ( theRadius, theCenter ) {
+				this.radius = theRadius / 4.0;
+				this.center = theCenter;
+			};
+			Sphere.prototype.parametric = function( phi, theta ) {
+				return new THREE.Vector3( this.radius * Math.sin( theta ) * Math.cos( phi ) - this.center.x,
+					this.radius * Math.sin( theta ) * Math.sin( phi ) - this.center.y,
+					this.radius * Math.cos( theta ) - this.center.z );
+			};
+
 			zitrus = new Zitrus( ( Math.sqrt( 5.0 / 1.2 ) / 2.0 ) * r / 2.0, r, new THREE.Vector3( 0.0, 0.0, r / 2.0 ));
+			sphere = new Sphere( r, new THREE.Vector3( 0.0, 0.0, 0.0 ) );
 
 			init();
 			animate();
@@ -129,14 +150,17 @@
 				var gui = new dat.GUI( { width: 300 } );
 
 				gui.add( effectController, "showDots" ).listen().onChange( function( value ) {
-					pointCloud.visible = value;
+					pointCloud[ 0 ].visible = pointCloud[ 1 ].visible = value;
 					requestAnimationFrame( animate );
 				} );
 				gui.add( effectController, "showLines" ).listen().onChange( function( value ) {
-					linesMesh.visible = value;
+					linesMesh[ 0 ].visible = linesMesh[ 1 ].visible = value;
 					requestAnimationFrame( animate );
 				} );
 				gui.add( effectController, "minDistance", 10, 300 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "minDistanceFactor", 0.0, 5.0 ).listen().onChange( function() {
 					requestAnimationFrame( animate );
 				} );
 				gui.add( effectController, "limitConnections" ).listen().onChange( function() {
@@ -150,7 +174,25 @@
 					particles.setDrawRange( 0, particleCount );
 					requestAnimationFrame( animate );
 				});
-				gui.add( effectController, "interpolation", 0.0, 1.0 ).listen().onChange( function() {
+				gui.add( effectController, "onZitrusCoeff", 0.0, 1.0 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "inCubeCoeff", 0.0, 1.0 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "onSphereCoeff", 0.0, 1.0 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "atPointCoeff", 0.0, 1.0 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "onSphereCoeff2", 0.0, 1.0 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "opacity", 0.0, 1.0 ).listen().onChange( function() {
+					requestAnimationFrame( animate );
+				} );
+				gui.add( effectController, "opacity2", 0.0, 1.0 ).listen().onChange( function() {
 					requestAnimationFrame( animate );
 				} );
 				gui.add( effectController, "animate" ).listen().onChange( function() {
@@ -178,7 +220,17 @@
 						//new THREE.Vector3( 0.0, 0.0, 0.0 ),
 						new THREE.Vector3( -1 + Math.random() * 2, -1 + Math.random() * 2,  -1 + Math.random() * 2 )
 					},
-					numConnections: 0
+					on_sphere: {
+						phi: 2.0 * Math.PI * Math.random(),
+						theta: 2.0 * Math.PI * Math.random(),
+						pos: sphere.parametric( this.phi, this.theta ),
+						velocity_phi: 2 * Math.PI * ( Math.random() * 2 - 1 ) / 500,
+						velocity_theta: 2 * Math.PI * ( Math.random() * 2 - 1 ) / 500
+					},
+					at_point: {
+						pos: new THREE.Vector3( 0, 0, 0 )
+					},
+					numConnections: [0,0]
 				};
 			}
 
@@ -209,20 +261,6 @@
 
 				var segments = maxParticleCount * maxParticleCount;
 
-				positions = new Float32Array( segments * 3 );
-				colors = new Float32Array( segments * 3 );
-
-				var pMaterial = new THREE.PointsMaterial( {
-					color: 0xFFFFFF,
-					size: 3,
-					blending: THREE.AdditiveBlending,
-					transparent: true,
-					sizeAttenuation: false
-				} );
-
-				particles = new THREE.BufferGeometry();
-				particlePositions = new Float32Array( maxParticleCount * 3 );
-
 				for ( var i = 0; i < maxParticleCount; i++ ) {
 					// create new particle data
 					var data = newParticleData();
@@ -237,35 +275,51 @@
 
 					// add it to the geometry
 					particlesData.push( data );
-					particlePositions[ i + 0 ] = data.on_zitrus.pos.x;
-					particlePositions[ i + 1 ] = data.on_zitrus.pos.y;
-					particlePositions[ i + 2 ] = data.on_zitrus.pos.z;
 				}
 
-				particles.setDrawRange( 0, particleCount );
-				particles.addAttribute( 'position', new THREE.BufferAttribute( particlePositions, 3 ).setDynamic( true ) );
+				for( g = 0; g < 2; ++g )
+				{
+					var pMaterial = new THREE.PointsMaterial( {
+						color: 0xFFFFFF,
+						size: 3,
+						blending: THREE.AdditiveBlending,
+						transparent: true,
+						sizeAttenuation: false,
+						opacity: 1.0
+					} );
 
-				// create the particle system
-				pointCloud = new THREE.Points( particles, pMaterial );
-				group.add( pointCloud );
+					var material = new THREE.LineBasicMaterial( {
+						vertexColors: THREE.VertexColors,
+						blending: THREE.AdditiveBlending,
+						transparent: true,
+						opacity: 1.0
+					} );
 
-				var geometry = new THREE.BufferGeometry();
+					positions[ g ] = new Float32Array( segments * 3 );
+					colors[ g ] = new Float32Array( segments * 3 );
 
-				geometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ).setDynamic( true ) );
-				geometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ).setDynamic( true ) );
+					particles[ g ] = new THREE.BufferGeometry();
+					particlePositions[ g ] = new Float32Array( maxParticleCount * 3 );
 
-				//geometry.computeBoundingSphere();
+					particles[ g ].setDrawRange( 0, particleCount );
+					particles[ g ].addAttribute( 'position', new THREE.BufferAttribute( particlePositions[ g ], 3 ).setDynamic( true ) );
 
-				geometry.setDrawRange( 0, 0 );
+					// create the particle system
+					pointCloud[ g ] = new THREE.Points( particles[ g ], pMaterial );
+					group.add( pointCloud[ g ] );
 
-				var material = new THREE.LineBasicMaterial( {
-					vertexColors: THREE.VertexColors,
-					blending: THREE.AdditiveBlending,
-					transparent: true
-				} );
+					geometry[ g ] = new THREE.BufferGeometry();
 
-				linesMesh = new THREE.LineSegments( geometry, material );
-				group.add( linesMesh );
+					geometry[ g ].addAttribute( 'position', new THREE.BufferAttribute( positions[ g ], 3 ).setDynamic( true ) );
+					geometry[ g ].addAttribute( 'color', new THREE.BufferAttribute( colors[ g ], 3 ).setDynamic( true ) );
+
+					//geometry.computeBoundingSphere();
+
+					geometry[ g ].setDrawRange( 0, 0 );
+
+					linesMesh[ g ] = new THREE.LineSegments( geometry[ g ], material );
+					group.add( linesMesh[ g ] );
+				}
 
 				//
 
@@ -293,6 +347,7 @@
 
 				// initialize tweens and put them in order into an array
 				tweens = [];
+/*
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
 					.to( defaults, 2000 )
@@ -311,6 +366,53 @@
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
 					.to( {"showDots":true,"showLines":true,"minDistance":17.62937044539739,"limitConnections":true,"maxConnections":30,"particleCount":1000,"interpolation":0}, 2000 ) );
+*/
+
+				// point
+				tweens.push( new TWEEN.Tween( effectController )
+					.to( defaults, 0 )
+					.to( { onZitrusCoeff: 0.0, inCubeCoeff: 0.0, onSphereCoeff: 0.0, atPointCoeff: 1.0, inCubeCoeff2: 0.0, onSphereCoeff2: 0.0, atPointCoeff2: 1.0, minDistanceFactor: 0.0, opacity: 0.0, opacity2: 0.0 }, 0 ) );
+				// cube
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { atPointCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0, opacity: 1.0 }, 2000 )
+					.delay( 1000 ) );
+				// zitrus
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0 }, 2000 )
+					.delay( 1000 ) );
+				// cube
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { onZitrusCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0 }, 2000 )
+					.delay( 1000 ) );
+				// sphere
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { inCubeCoeff: 0.0, onSphereCoeff: 1.0, minDistanceFactor: 1.0 }, 2000 )
+					.delay( 1000 ) );
+				// cube
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { onSphereCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0 }, 2000 )
+					.delay( 1000 ) );
+				// zitrus and sphere
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0, inCubeCoeff2: 0.0, onSphereCoeff2: 1.0, atPointCoeff2: 0.0, opacity2: 1.0 }, 2000 )
+					.delay( 1000 ) );
+				// cube
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( { onZitrusCoeff: 0.0, inCubeCoeff: 1.0, inCubeCoeff2: 1.0, onSphereCoeff2: 0.0, minDistanceFactor: 2.0, opacity2: 0.0 }, 2000 )
+					.delay( 1000 ) );
+				// point
+				tweens.push( new TWEEN.Tween( effectController )
+					.easing( TWEEN.Easing.Cubic.InOut )
+					.to( defaults, 2000 )
+					.to( { inCubeCoeff: 0.0, atPointCoeff: 1.0, inCubeCoeff2: 0.0, atPointCoeff2: 1.0, minDistanceFactor: 0.0, opacity: 0.0, opacity2: 0.0 }, 2000 )
+					.delay( 1000 ) );
 
 				// actually chain tweens and start them
 				for( var i = 0; i < tweens.length - 1; i++ )
@@ -332,18 +434,16 @@
 
 				TWEEN.update();
 
-				var vertexpos = 0;
-				var colorpos = 0;
-				var numConnected = 0;
-
 				for ( var i = 0; i < particleCount; i++ ) {
 					// get the particle
 					var particleData = particlesData[i];
 					var on_zitrus = particleData.on_zitrus;
 					var in_cube = particleData.in_cube;
+					var on_sphere = particleData.on_sphere;
+					var at_point = particleData.at_point;
 
 					// reset number of connections for this frame
-					particleData.numConnections = 0;
+					particleData.numConnections = [ 0, 0 ];
 
 					if( effectController.animate ) {
 						// update particle positions and velocities of the on_zitrus part
@@ -370,67 +470,100 @@
 
 						if ( in_cube.pos.z < -rHalf || in_cube.pos.z > rHalf )
 							in_cube.velocity.z = -in_cube.velocity.z;
+
+						// update particle positions and velocities of the on_sphere part
+						on_sphere.pos = sphere.parametric( on_sphere.phi, on_sphere.theta );
+						on_sphere.phi += on_sphere.velocity_phi;
+						on_sphere.theta += on_sphere.velocity_theta;
 					}
 
 					// update vertex buffer
-					var in_between = new THREE.Vector3().lerpVectors( on_zitrus.pos, in_cube.pos, effectController.interpolation );
-					//console.log( in_between );
-					particlePositions[ i * 3     ] = in_between.x;
-					particlePositions[ i * 3 + 1 ] = in_between.y;
-					particlePositions[ i * 3 + 2 ] = in_between.z;
+					var in_between = new THREE.Vector3()
+						.addScaledVector( on_zitrus.pos, effectController.onZitrusCoeff )
+						.addScaledVector( in_cube.pos, effectController.inCubeCoeff )
+						.addScaledVector( on_sphere.pos, effectController.onSphereCoeff )
+						.addScaledVector( at_point.pos, effectController.atPointCoeff );
+					particlePositions[ 0 ][ i * 3	 ] = in_between.x;
+					particlePositions[ 0 ][ i * 3 + 1 ] = in_between.y;
+					particlePositions[ 0 ][ i * 3 + 2 ] = in_between.z;
+
+					// update vertex buffer
+					var in_between2 = new THREE.Vector3()
+						.addScaledVector( in_cube.pos, effectController.inCubeCoeff2 )
+						.addScaledVector( on_sphere.pos, effectController.onSphereCoeff2 )
+						.addScaledVector( at_point.pos, effectController.atPointCoeff2 );
+					particlePositions[ 1 ][ i * 3	 ] = in_between2.x;
+					particlePositions[ 1 ][ i * 3 + 1 ] = in_between2.y;
+					particlePositions[ 1 ][ i * 3 + 2 ] = in_between2.z;
 				}
 
-				for ( var i = 0; i < particleCount; i++ ) {
-					var particleDataA = particlesData[ i ];
+				for( g = 0; g < 2; ++g )
+				{
+					var vertexpos = 0;
+					var colorpos = 0;
+					var numConnected = 0;
 
-					if ( effectController.limitConnections && particleDataA.numConnections >= effectController.maxConnections )
-						continue;
+					for ( var i = 0; i < particleCount; i++ ) {
+						var particleDataA = particlesData[ i ];
 
-					// Check collision
-					for ( var j = i + 1; j < particleCount; j++ ) {
-						var particleDataB = particlesData[ j ];
-						if ( effectController.limitConnections && particleDataB.numConnections >= effectController.maxConnections )
+						if ( effectController.limitConnections && particleDataA.numConnections[ g ] >= effectController.maxConnections )
 							continue;
 
-						var dx = particlePositions[ i * 3     ] - particlePositions[ j * 3     ];
-						var dy = particlePositions[ i * 3 + 1 ] - particlePositions[ j * 3 + 1 ];
-						var dz = particlePositions[ i * 3 + 2 ] - particlePositions[ j * 3 + 2 ];
-						var dist = Math.sqrt( dx * dx + dy * dy + dz * dz );
+						// Check collision
+						for ( var j = i + 1; j < particleCount; j++ ) {
+							var particleDataB = particlesData[ j ];
+							if ( effectController.limitConnections && particleDataB.numConnections[ g ] >= effectController.maxConnections )
+								continue;
 
-						var minDistance = effectController.minDistance * ( 1.0 + effectController.interpolation );
-						if ( dist < minDistance ) {
+							var dx = particlePositions[ g ][ i * 3	 ] - particlePositions[ g ][ j * 3	 ];
+							var dy = particlePositions[ g ][ i * 3 + 1 ] - particlePositions[ g ][ j * 3 + 1 ];
+							var dz = particlePositions[ g ][ i * 3 + 2 ] - particlePositions[ g ][ j * 3 + 2 ];
+							var dist = Math.sqrt( dx * dx + dy * dy + dz * dz );
 
-							particleDataA.numConnections++;
-							particleDataB.numConnections++;
+							var minDistance = effectController.minDistance * effectController.minDistanceFactor;
+							if ( dist < minDistance ) {
 
-							var alpha = 1.0 - dist / minDistance;
+								particleDataA.numConnections[ g ]++;
+								particleDataB.numConnections[ g ]++;
 
-							positions[ vertexpos++ ] = particlePositions[ i * 3     ];
-							positions[ vertexpos++ ] = particlePositions[ i * 3 + 1 ];
-							positions[ vertexpos++ ] = particlePositions[ i * 3 + 2 ];
+								var alpha = 1.0 - dist / minDistance;
 
-							positions[ vertexpos++ ] = particlePositions[ j * 3     ];
-							positions[ vertexpos++ ] = particlePositions[ j * 3 + 1 ];
-							positions[ vertexpos++ ] = particlePositions[ j * 3 + 2 ];
+								positions[ g ][ vertexpos++ ] = particlePositions[ g ][ i * 3	 ];
+								positions[ g ][ vertexpos++ ] = particlePositions[ g ][ i * 3 + 1 ];
+								positions[ g ][ vertexpos++ ] = particlePositions[ g ][ i * 3 + 2 ];
 
-							colors[ colorpos++ ] = alpha;
-							colors[ colorpos++ ] = alpha;
-							colors[ colorpos++ ] = alpha;
+								positions[ g ][ vertexpos++ ] = particlePositions[ g ][ j * 3	 ];
+								positions[ g ][ vertexpos++ ] = particlePositions[ g ][ j * 3 + 1 ];
+								positions[ g ][ vertexpos++ ] = particlePositions[ g ][ j * 3 + 2 ];
 
-							colors[ colorpos++ ] = alpha;
-							colors[ colorpos++ ] = alpha;
-							colors[ colorpos++ ] = alpha;
+								colors[ g ][ colorpos++ ] = alpha;
+								colors[ g ][ colorpos++ ] = alpha;
+								colors[ g ][ colorpos++ ] = alpha;
 
-							numConnected++;
+								colors[ g ][ colorpos++ ] = alpha;
+								colors[ g ][ colorpos++ ] = alpha;
+								colors[ g ][ colorpos++ ] = alpha;
+
+								numConnected++;
+							}
 						}
 					}
+
+					linesMesh[ g ].geometry.setDrawRange( 0, numConnected * 2 );
+					linesMesh[ g ].geometry.attributes.position.needsUpdate = true;
+					linesMesh[ g ].geometry.attributes.color.needsUpdate = true;
+
+					pointCloud[ g ].geometry.attributes.position.needsUpdate = true;
+
+					linesMesh[ g ].visible = !( ( g == 0 && effectController.atPointCoeff == 1.0 ) || ( g == 1 && effectController.atPointCoeff2 == 1.0 ) );
+					pointCloud[ g ].visible = !( ( g == 0 && effectController.atPointCoeff == 1.0 ) || ( g == 1 && effectController.atPointCoeff2 == 1.0 ) );
+
+					linesMesh[ g ].material.opacity = g == 0 ? effectController.opacity : effectController.opacity2;
+					linesMesh[ g ].material.needsUpdate = true;
+
+					pointCloud[ g ].material.opacity = g == 0 ? effectController.opacity : effectController.opacity2;
+					pointCloud[ g ].material.needsUpdate = true;
 				}
-
-				linesMesh.geometry.setDrawRange( 0, numConnected * 2 );
-				linesMesh.geometry.attributes.position.needsUpdate = true;
-				linesMesh.geometry.attributes.color.needsUpdate = true;
-
-				pointCloud.geometry.attributes.position.needsUpdate = true;
 
 				if( effectController.animate )
 					requestAnimationFrame( animate );
