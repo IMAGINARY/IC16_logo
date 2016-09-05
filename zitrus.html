@@ -78,7 +78,9 @@
 				onSphereCoeff2: 0.0001,
 				atPointCoeff2: 0.999999,
 				opacity: 1.0,
-				opacity2: 1.0
+				opacity2: 1.0,
+                delay: 3000,
+                duration: 6000
 			}
 
 			var effectController = {};
@@ -375,44 +377,44 @@
 				// cube
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { atPointCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0, opacity: 1.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( { atPointCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0, opacity: 1.0 }, effectController.duration )
+					.delay( 0 ) );
 				// zitrus
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0 }, effectController.duration )
+					.delay( effectController.delay ) );
 				// cube
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { onZitrusCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( { onZitrusCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0 }, effectController.duration )
+					.delay( effectController.delay ) );
 				// sphere
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { inCubeCoeff: 0.0, onSphereCoeff: 1.0, minDistanceFactor: 1.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( { inCubeCoeff: 0.0, onSphereCoeff: 1.0, minDistanceFactor: 1.0 }, effectController.duration )
+					.delay( effectController.delay ) );
 				// cube
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { onSphereCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( { onSphereCoeff: 0.0, inCubeCoeff: 1.0, minDistanceFactor: 2.0 }, effectController.duration )
+					.delay( effectController.delay ) );
 				// zitrus and sphere
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0, inCubeCoeff2: 0.0, onSphereCoeff2: 1.0, atPointCoeff2: 0.0, opacity2: 1.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0, inCubeCoeff2: 0.0, onSphereCoeff2: 1.0, atPointCoeff2: 0.0, opacity2: 1.0 }, effectController.duration )
+					.delay( effectController.delay ) );
 				// cube
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { onZitrusCoeff: 0.0, inCubeCoeff: 1.0, inCubeCoeff2: 1.0, onSphereCoeff2: 0.0, minDistanceFactor: 2.0, opacity2: 0.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( { onZitrusCoeff: 0.0, inCubeCoeff: 1.0, inCubeCoeff2: 1.0, onSphereCoeff2: 0.0, minDistanceFactor: 2.0, opacity2: 0.0 }, effectController.duration )
+					.delay( effectController.delay ) );
 				// point
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( defaults, 2000 )
-					.to( { inCubeCoeff: 0.0, atPointCoeff: 1.0, inCubeCoeff2: 0.0, atPointCoeff2: 1.0, minDistanceFactor: 0.0, opacity: 0.0, opacity2: 0.0 }, 2000 )
-					.delay( 1000 ) );
+					.to( defaults, effectController.duration )
+					.to( { inCubeCoeff: 0.0, atPointCoeff: 1.0, inCubeCoeff2: 0.0, atPointCoeff2: 1.0, minDistanceFactor: 0.0, opacity: 0.0, opacity2: 0.0 }, effectController.duration )
+					.delay( effectController.delay ) );
 
 				// actually chain tweens and start them
 				for( var i = 0; i < tweens.length - 1; i++ )
