@@ -283,7 +283,7 @@
 				{
 					var pMaterial = new THREE.PointsMaterial( {
 						color: 0xFFFFFF,
-						size: 3,
+						size: 5,
 						blending: THREE.AdditiveBlending,
 						transparent: true,
 						sizeAttenuation: false,
@@ -294,7 +294,8 @@
 						vertexColors: THREE.VertexColors,
 						blending: THREE.AdditiveBlending,
 						transparent: true,
-						opacity: 1.0
+						opacity: 1.0,
+                        linewidth: 2
 					} );
 
 					positions[ g ] = new Float32Array( segments * 3 );
