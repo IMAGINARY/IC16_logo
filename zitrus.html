@@ -153,9 +153,6 @@
 			zitrus = new Zitrus( ( Math.sqrt( 5.0 / 1.2 ) / 2.0 ) * r / 2.0, r, new THREE.Vector3( 0.0, 0.0, r / 2.0 ));
 			sphere = new Sphere( r, new THREE.Vector3( 0.0, 0.0, 0.0 ) );
 
-			init();
-			animate();
-
 			function initGUI() {
 
 				var gui = new dat.GUI( { width: 300 } );
@@ -431,6 +428,9 @@
 					.to( defaults, effectController.duration )
 					.to( { inCubeCoeff: 0.0, atPointCoeff: 1.0, inCubeCoeff2: 0.0, atPointCoeff2: 1.0, minDistanceFactor: 0.0, opacity: 0.0, opacity2: 0.0 }, effectController.duration )
 					.delay( effectController.delay ) );
+				tweens.push( new TWEEN.Tween( effectController )
+					.delay( effectController.delay / 2.0 )
+					.onComplete( function() { startTimeMs = Date.now(); } ) );
 
 				// actually chain tweens and start them
 				for( var i = 0; i < tweens.length - 1; i++ )
@@ -590,16 +590,20 @@
 				render();
 			}
 
+			var startTimeMs = Date.now();
+			var firstRotationKeyFrameAfterS = 3 + 6 + 3 + 3;
+			var secondRotationKeyFrameAfterAdditionalS = 3 + 3 + 6 + 3 + 6 + 3 + 6 + 3 + 3;
+			var rotationsOffsetMs = firstRotationKeyFrameAfterS * 1000.0;
+			var rotationsPerSecond = 1.0 / secondRotationKeyFrameAfterAdditionalS;
+			// for debugging
+            //window.setTimeout( function(){alert();},rotationsOffsetMs + (3 + 3 + 6 + 3 + 6 + 3 + 6 + 3 + 3)*1000.0);
 			function render() {
-
-				var time = Date.now() * 0.001;
-				//time = 5.0 * Math.PI;
-
-				group.rotation.y = time * 0.1;
+				group.rotation.y = ( ( rotationsPerSecond * ( Date.now() - startTimeMs - rotationsOffsetMs ) / 1000.0 ) + 0.25 ) * 2.0 * Math.PI;
 				renderer.render( scene, camera );
-
 			}
 
+			init();
+			animate();
 		</script>
 	</body>
 </html>
