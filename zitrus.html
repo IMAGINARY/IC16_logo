@@ -42,6 +42,7 @@
 		<script src="js/controls/OrbitControls.js"></script>
 		<script src="js/libs/stats.min.js"></script>
 		<script src="js/libs/Tween.js"></script>
+		<script src="js/libs/THREEx.FullScreen.js"></script>
 
 		<script>
 
@@ -109,6 +110,9 @@
 			};
 			effectController.showSettingsInPopUp = function() {
 				window.alert( JSON.stringify( effectController, Object.getOwnPropertyNames( defaults ) ) );
+			}
+			effectController.fullscreen = function() {
+				THREEx.FullScreen.request();
 			}
 
 			function Zitrus ( theRadius, theLength, theCenter ) {
@@ -205,6 +209,7 @@
 				gui.add( effectController, "restartTweening" );
 				gui.add( effectController, "showSettingsInPopUp" );
 				gui.add( effectController, "exportToSvg" );
+				gui.add( effectController, "fullscreen" );
 			}
 
 			function newParticleData() {
