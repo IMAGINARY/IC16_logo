@@ -119,6 +119,9 @@
 			effectController.hideBox = function() {
 				box.visible = false;
 			}
+            effectController.hideCursor = function() {
+				renderer.domElement.style.cursor = 'none';
+			}
 
 			function Zitrus ( theRadius, theLength, theCenter ) {
 				this.radius = 4.0 * theRadius;
@@ -214,6 +217,7 @@
 				gui.add( effectController, "fullscreen" );
 				gui.add( effectController, "hideControls" );
 				gui.add( effectController, "hideBox" );
+				gui.add( effectController, "hideCursor" );
 
 				return gui;
 			}
