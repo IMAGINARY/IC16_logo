@@ -122,6 +122,12 @@
             effectController.hideCursor = function() {
 				renderer.domElement.style.cursor = 'none';
 			}
+            effectController.recordingMode = function() {
+				effectController.fullscreen();
+                effectController.hideControls();
+                effectController.hideBox();
+                effectController.hideCursor();
+			}
 
 			function Zitrus ( theRadius, theLength, theCenter ) {
 				this.radius = 4.0 * theRadius;
@@ -218,6 +224,7 @@
 				gui.add( effectController, "hideControls" );
 				gui.add( effectController, "hideBox" );
 				gui.add( effectController, "hideCursor" );
+				gui.add( effectController, "recordingMode" );
 
 				return gui;
 			}
