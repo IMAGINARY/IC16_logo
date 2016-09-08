@@ -78,8 +78,8 @@
 				atPointCoeff2: 0.999999,
 				opacity: 1.0,
 				opacity2: 1.0,
-                delay: 3000,
-                duration: 6000
+				delay: 3000,
+				duration: 6000
 			}
 
 			var effectController = {};
@@ -320,7 +320,7 @@
 						blending: THREE.AdditiveBlending,
 						transparent: true,
 						opacity: 1.0,
-                        linewidth: 2
+						linewidth: 2
 					} );
 
 					positions[ g ] = new Float32Array( segments * 3 );
@@ -609,7 +609,7 @@
 			var rotationsOffsetMs = firstRotationKeyFrameAfterS * 1000.0;
 			var rotationsPerSecond = 1.0 / secondRotationKeyFrameAfterAdditionalS;
 			// for debugging
-            //window.setTimeout( function(){alert();},rotationsOffsetMs + (3 + 3 + 6 + 3 + 6 + 3 + 6 + 3 + 3)*1000.0);
+			//window.setTimeout( function(){alert();},rotationsOffsetMs + (3 + 3 + 6 + 3 + 6 + 3 + 6 + 3 + 3)*1000.0);
 			function render() {
 				group.rotation.y = ( ( rotationsPerSecond * ( Date.now() - startTimeMs - rotationsOffsetMs ) / 1000.0 ) + 0.25 ) * 2.0 * Math.PI;
 				renderer.render( scene, camera );
