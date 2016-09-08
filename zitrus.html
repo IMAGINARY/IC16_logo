@@ -159,8 +159,10 @@
 					this.radius * Math.cos( theta ) - this.center.z );
 			};
 
-			zitrus = new Zitrus( ( Math.sqrt( 5.0 / 1.2 ) / 2.0 ) * r / 2.0, r, new THREE.Vector3( 0.0, 0.0, r / 2.0 ));
-			sphere = new Sphere( r, new THREE.Vector3( 0.0, 0.0, 0.0 ) );
+            scaleFactor = 1.8;
+            scaledR = scaleFactor * r;
+			zitrus = new Zitrus( ( Math.sqrt( 5.0 / 1.2 ) / 2.0 ) * scaledR / 2.0, scaledR, new THREE.Vector3( 0.0, 0.0, scaledR / 2.0 ));
+			sphere = new Sphere( scaledR, new THREE.Vector3( 0.0, 0.0, 0.0 ) );
 
 			function initGUI() {
 
@@ -266,8 +268,8 @@
 
 				//
 
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
-				camera.position.z = 850;
+				camera = new THREE.PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 1, 10000 );
+				camera.position.z = 2850.0;
 
 				controls = new THREE.OrbitControls( camera, container );
 
@@ -406,7 +408,7 @@
 				// zitrus
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0 }, effectController.duration )
+					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: scaleFactor * 0.75 }, effectController.duration )
 					.delay( effectController.delay ) );
 				// cube
 				tweens.push( new TWEEN.Tween( effectController )
@@ -416,7 +418,7 @@
 				// sphere
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { inCubeCoeff: 0.0, onSphereCoeff: 1.0, minDistanceFactor: 1.0 }, effectController.duration )
+					.to( { inCubeCoeff: 0.0, onSphereCoeff: 1.0, minDistanceFactor: scaleFactor * 0.75 }, effectController.duration )
 					.delay( effectController.delay ) );
 				// cube
 				tweens.push( new TWEEN.Tween( effectController )
@@ -426,7 +428,7 @@
 				// zitrus and sphere
 				tweens.push( new TWEEN.Tween( effectController )
 					.easing( TWEEN.Easing.Cubic.InOut )
-					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: 1.0, inCubeCoeff2: 0.0, onSphereCoeff2: 1.0, atPointCoeff2: 0.0, opacity2: 1.0 }, effectController.duration )
+					.to( { inCubeCoeff: 0.0, onZitrusCoeff: 1.0, minDistanceFactor: scaleFactor * 0.75, inCubeCoeff2: 0.0, onSphereCoeff2: 1.0, atPointCoeff2: 0.0, opacity2: 1.0 }, effectController.duration )
 					.delay( effectController.delay ) );
 				// cube
 				tweens.push( new TWEEN.Tween( effectController )
